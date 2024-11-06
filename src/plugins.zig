@@ -46,6 +46,12 @@ pub const TableOfContents = struct {
                 try child.toText(node_value.writer());
 
                 try self.id(&node_value);
+
+                if (self.mutate) {
+                    const slug = self.slugs.items[self.slugs.items.len - 1];
+                    try child.addProp("id", std.mem.trim(u8, slug, "#"));
+                    try child.addProp("data-slug", slug);
+                }
             }
         }
     }
@@ -54,8 +60,7 @@ pub const TableOfContents = struct {
         var hash = try node_value.clone();
         defer hash.deinit();
 
-        hash.items[0] = '#';
-        var i: usize = 1;
+        var i: usize = 0;
         while (i < hash.items.len) {
             if (hash.items[i] == ' ') {
                 hash.items[i] = '-';
@@ -73,6 +78,8 @@ pub const TableOfContents = struct {
             const writer = hash.writer();
             try writer.print("{d}", .{idx});
         }
+
+        try hash.insert(0, '#');
 
         try self.slugs.append(try hash.toOwnedSlice());
         try self.values.append(try node_value.toOwnedSlice());

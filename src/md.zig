@@ -115,7 +115,10 @@ pub const Lexer = struct {
                 try self.wrap(.code, '`'); // `` is not a recursive element
             },
             '*' => {
-                try self.addToken(.star);
+                if (self.col == 1 and self.peek() == ' ') {
+                    _ = self.advance();
+                    try self.addToken(.ul);
+                } else try self.addToken(.star);
             },
             '#' => {
                 while (self.peek() == '#') {
@@ -415,7 +418,7 @@ fn parseBlock(self: *Self, parent: *Element) !void {
                     const space = self.raw[self.peekAhead(1).start];
                     if (space == ' ') {}
                 }
-                while (!self.match(.nl))
+                while (!self.match(.nl)) 
                     try self.parseInline(li);
                 try ul.addChild(li);
                 kind = self.peek().kind;
@@ -452,35 +455,34 @@ fn parseInline(self: *Self, parent: *Element) !void {
             try a.addChild(try Element.textNode(self.allocator, self.raw[token.start + 1..token.start + token.length - 1]));
             try push.addChild(a);
         },
-        .star => {
-            if (self.match(.star)) {
-                _ = self.advance();
+        // .star => {
+        //     if (self.match(.star)) {
+        //         _ = self.advance();
 
-                const b = try Element.init(self.allocator, "b");
+        //         const b = try Element.init(self.allocator, "b");
 
-                // while (!self.match(.star) and !self.matchAhead(1, .star)) {
-                //     if (self.matchAhead(1, .eof))
-                //         std.debug.panic("this shouldn't happen", .{});  // ! This should fall through and attempt to parse as italic, not throw an error.
-                //     try self.parseInline(&b);
-                //     break;
-                // }
+        //         // while (!self.match(.star) and !self.matchAhead(1, .star)) {
+        //         //     if (self.matchAhead(1, .eof))
+        //         //         std.debug.panic("this shouldn't happen", .{});  // ! This should fall through and attempt to parse as italic, not throw an error.
+        //         //     try self.parseInline(&b);
+        //         //     break;
+        //         // }
 
-                _ = try self.eat(.plain);
-                _ = try self.eat(.star);
-                _ = try self.eat(.star);
-                try push.addChild(b);
-                return;
-            }
+        //         _ = try self.eat(.plain);
+        //         _ = try self.eat(.star);
+        //         try push.addChild(b);
+        //         return;
+        //     }
 
-            const i = try Element.init(self.allocator, "i");
-            while (!self.match(.star)) {
-                if (self.isAtEnd())
-                    return ParserError.UnexpectedToken;
-                try self.parseInline(i);
-            }
-            _ = try self.eat(.star);
-            try push.addChild(i);
-        },
+        //     const i = try Element.init(self.allocator, "i");
+        //     while (!self.match(.star)) {
+        //         if (self.isAtEnd())
+        //             return ParserError.UnexpectedToken;
+        //         try self.parseInline(i);
+        //     }
+        //     _ = try self.eat(.star);
+        //     try push.addChild(i);
+        // },
         else => {
             try push.addChild(try Element.textNode(self.allocator, self.raw[token.start..token.start + token.length]));
         }
